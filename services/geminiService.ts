@@ -3,7 +3,9 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Hotspot } from "../types";
 import { withRetry } from "./retryService";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const apiKey = process.env.API_KEY;
+// Initialize safely - if no key, ai will be null but app won't crash
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 /**
  * Fetches real-time demand hotspots from Gemini.
@@ -11,6 +13,10 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
  */
 export const getDemandHotspots = async (city: string): Promise<Hotspot[]> => {
   return withRetry(async () => {
+    if (!ai) {
+      console.warn("Gemini API key missing, returning empty hotspots");
+      return [];
+    }
     try {
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
@@ -56,6 +62,9 @@ export const getDemandHotspots = async (city: string): Promise<Hotspot[]> => {
  */
 export const getFinancialAdvice = async (query: string, context: string) => {
   return withRetry(async () => {
+    if (!ai) {
+      return { text: "AI features are disabled (no API key configured).", sources: [] };
+    }
     try {
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
@@ -66,10 +75,10 @@ export const getFinancialAdvice = async (query: string, context: string) => {
           tools: [{ googleSearch: {} }]
         }
       });
-      
+
       return {
-          text: response.text,
-          sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks?.map((c: any) => c.web).filter(Boolean) || []
+        text: response.text,
+        sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks?.map((c: any) => c.web).filter(Boolean) || []
       };
     } catch (error) {
       console.error("Gemini advice failed:", error);
