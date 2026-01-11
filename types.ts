@@ -202,14 +202,15 @@ export interface SavingsGoal {
 }
 
 export interface Hotspot {
-  id: number;
-  zone_name: string;
-  zone_type: 'commercial' | 'residential' | 'mixed' | 'industrial' | 'entertainment';
-  center_latitude: number;
-  center_longitude: number;
-  radius_km: number;
-  is_high_demand_area: boolean;
-  demand_score: number; // For UI display
+  area: string;
+  intensity: number;
+  demandReason: string;
+  expectedIncentive: string;
+  distance: string;
+  coordinates: {
+    lat: number;
+    lng: number;
+  };
 }
 
 export interface Course {
@@ -237,7 +238,7 @@ export enum AppTab {
   CAREER = 'career'
 }
 
-export type AppView = 'AUTH' | 'ONBOARDING' | 'MAIN';
+export type AppView = 'AUTH' | 'ONBOARDING' | 'MAIN' | 'PROFILE_DETAILS' | 'PROFILE_EDIT';
 
 export interface AnalyticsEvent {
   eventName: string;
@@ -248,6 +249,9 @@ export interface AnalyticsEvent {
 // Preserve some legacy UI types for compatibility
 export interface UserProfile {
   phoneNumber: string;
+  name?: string;
+  email?: string;
+  city?: string;
   language: Language;
   platforms: PlatformName[];
   vehicle: VehicleType;

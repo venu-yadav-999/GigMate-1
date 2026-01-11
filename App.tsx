@@ -1,5 +1,5 @@
-
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import 'leaflet/dist/leaflet.css';
 import { AppTab, EarningEntry, ExpenseEntry, AppView, UserProfile, Theme, Language } from './types';
 import { MOCK_EARNINGS, NAV_ITEMS } from './constants';
 import Dashboard from './components/Dashboard';
@@ -11,6 +11,8 @@ import AuthFlow from './components/AuthFlow';
 import Onboarding from './components/Onboarding';
 import { useTranslation } from './services/i18nService';
 import { analytics } from './services/analyticsService';
+import ProfileManager from './components/ProfileManager';
+import { Edit2, FileText } from 'lucide-react';
 
 const App: React.FC = () => {
   // Global State
@@ -83,7 +85,7 @@ const App: React.FC = () => {
       case AppTab.EARNINGS:
         return <EarningsTracker earnings={earnings} onAdd={addEarning} language={user?.language || 'en'} />;
       case AppTab.MAP:
-        return <DemandMap language={user?.language || 'en'} />;
+        return <DemandMap language={user?.language || 'en'} city={user?.city} platforms={user?.platforms} />;
       case AppTab.FINANCE:
         return <FinancialCoach earnings={earnings} expenses={expenses} onAddExpense={addExpense} language={user?.language || 'en'} />;
       case AppTab.CAREER:
@@ -109,9 +111,26 @@ const App: React.FC = () => {
     );
   }
 
+  if (view === 'PROFILE_DETAILS' || view === 'PROFILE_EDIT') {
+    return (
+      <div className="max-w-md mx-auto h-screen bg-white relative z-[200]">
+        <ProfileManager
+          mode={view === 'PROFILE_EDIT' ? 'edit' : 'view'}
+          user={user!}
+          onUpdate={(updatedUser) => {
+            setUser(updatedUser);
+            if (view === 'PROFILE_EDIT') setView('PROFILE_DETAILS');
+          }}
+          onBack={() => setView('MAIN')}
+          onEdit={() => setView('PROFILE_EDIT')}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className={`flex flex-col min-h-screen max-w-md mx-auto relative animate-in fade-in duration-700 ${user?.theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-      <header className={`p-4 sticky top-0 z-50 flex items-center justify-between border-b shadow-sm transition-colors duration-300 ${user?.theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
+    <div className={`flex flex-col h-[100dvh] overflow-hidden max-w-md mx-auto relative animate-in fade-in duration-700 ${user?.theme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+      <header className={`flex-none p-4 z-50 flex items-center justify-between border-b shadow-sm transition-colors duration-300 ${user?.theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
         <div className="flex items-center gap-3">
           <img src="/icon.png" alt="GigMate Icon" className="w-8 h-8 rounded-lg shadow-sm" />
           <div className="flex items-baseline">
@@ -132,8 +151,8 @@ const App: React.FC = () => {
           <button
             onClick={() => setIsProfileOpen(true)}
             className={`flex items-center gap-2 p-1 pr-3 rounded-full border transition-all active:scale-95 ${user?.theme === 'dark'
-                ? 'bg-gray-800 border-gray-700 hover:bg-gray-700'
-                : 'bg-white border-gray-100 hover:bg-gray-50 shadow-sm'
+              ? 'bg-gray-800 border-gray-700 hover:bg-gray-700'
+              : 'bg-white border-gray-100 hover:bg-gray-50 shadow-sm'
               }`}
           >
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-gigmate-green to-gigmate-blue flex items-center justify-center text-white text-[10px] font-bold shadow-sm">
@@ -157,12 +176,21 @@ const App: React.FC = () => {
               <button onClick={() => setIsProfileOpen(false)} className="p-2 rounded-full bg-gray-100 dark:bg-gray-800">✕</button>
             </div>
 
-            <div className="flex flex-col items-center mb-8">
+            <div className="flex flex-col items-center mb-8 relative">
+              <button
+                onClick={() => { setIsProfileOpen(false); setView('PROFILE_EDIT'); }}
+                className="absolute top-0 right-4 p-2 bg-gray-100 dark:bg-gray-800 rounded-full text-gigmate-blue"
+              >
+                <Edit2 size={16} />
+              </button>
               <div className="w-24 h-24 rounded-[2.5rem] bg-gradient-to-br from-gigmate-green to-gigmate-blue flex items-center justify-center text-white text-3xl font-black shadow-xl mb-4">
-                {user?.phoneNumber?.slice(-2) || 'GM'}
+                {user?.name ? user.name.charAt(0).toUpperCase() : (user?.phoneNumber?.slice(-2) || 'GM')}
               </div>
-              <h4 className="text-lg font-black tracking-tight">+91 {user?.phoneNumber}</h4>
-              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Verified Partner</p>
+              <h4 className="text-lg font-black tracking-tight">{user?.name || `Partner + 91 ${user?.phoneNumber?.slice(-4)}`}</h4>
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">+91 {user?.phoneNumber}</p>
+              <div className="mt-2 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full text-[10px] font-black uppercase tracking-wider">
+                Verified Partner
+              </div>
             </div>
 
             <div className="space-y-4 flex-1">
@@ -190,6 +218,14 @@ const App: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            <button
+              onClick={() => { setIsProfileOpen(false); setView('PROFILE_DETAILS'); }}
+              className={`w-full mb-3 p-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-colors ${user?.theme === 'dark' ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-gray-50 text-gray-900 hover:bg-gray-100'}`}
+            >
+              <FileText size={18} />
+              View Full Details
+            </button>
 
             <button
               onClick={() => { setView('AUTH'); setIsProfileOpen(false); localStorage.removeItem('gm_user'); }}
